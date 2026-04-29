@@ -3,38 +3,491 @@ layout: default
 ---
 <!DOCTYPE html>
 <html lang="en">
-
-
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPT Channel Files</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-light: #e8f0fe;
+      --bg: #fafbfc;
+      --card-bg: #ffffff;
+      --text: #202124;
+      --text-light: #5f6368;
+      --border: #dadce0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --hover-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --badge-ppt: #c5221f;
+      --badge-pptx: #188038;
+      --badge-ppsx: #7b1fa2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Google Sans", "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+      color: white;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    .header h1 {
+      font-weight: 400;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .header p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+    }
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .filter-bar input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      font-size: 1rem;
+      outline: none;
+      background: white;
+      transition: border 0.2s;
+    }
+    .filter-bar input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .clear-btn:hover { text-decoration: underline; }
 
+    .parent-section {
+      margin-bottom: 2.5rem;
+    }
+    .parent-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .parent-header h2 {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-right: auto;
+    }
+    .parent-header .folder-icon { font-size: 1.5rem; }
+    .parent-header .toggle-icon {
+      font-size: 1.2rem;
+      transition: transform 0.3s;
+      margin-left: 0.5rem;
+    }
+    .parent-section.collapsed .parent-content {
+      display: none;
+    }
+    .parent-section.collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
 
+    .download-all-btn {
+      background: #e8f0fe;
+      color: var(--primary);
+      border: 1px solid var(--primary-light);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+    .download-all-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+    .download-all-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
 
+    .subfolder {
+      margin-top: 1rem;
+    }
+    .subfolder-header {
+      background: #f1f3f4;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .subfolder-header .sub-folder-icon { color: #80868b; }
 
-  <title>Presentation Hub</title>
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .file-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s, transform 0.1s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .file-card:hover {
+      box-shadow: var(--hover-shadow);
+      transform: translateY(-2px);
+    }
+    .file-name {
+      font-weight: 500;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      word-break: break-word;
+    }
+    .file-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-light);
+      font-size: 0.8rem;
+      margin: 0.5rem 0;
+    }
+    .file-path {
+      font-size: 0.75rem;
+      color: #80868b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-type {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .type-ppt { background: #fce4e4; color: var(--badge-ppt); }
+    .type-pptx { background: #e6f4ea; color: var(--badge-pptx); }
+    .type-ppsx { background: #f3e8fd; color: var(--badge-ppsx); }
+
+    .download-btn {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+      margin-top: 0.75rem;
+      transition: background 0.2s;
+    }
+    .download-btn:hover { background: #1765cc; }
+
+    .empty-message {
+      text-align: center;
+      color: var(--text-light);
+      font-style: italic;
+      margin: 3rem 0;
+    }
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+    }
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.8rem; }
+      .file-grid { grid-template-columns: 1fr; }
+      .parent-header { flex-wrap: wrap; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".parent-header").forEach(header => {
+        header.addEventListener("click", (e) => {
+          // Prevent toggle when clicking the button itself
+          if (e.target.closest('.download-all-btn')) return;
+          header.parentElement.classList.toggle("collapsed");
+        });
+      });
+      document.getElementById("searchInput").addEventListener("input", filterFiles);
+      document.getElementById("clearSearch").addEventListener("click", clearSearch);
+    });
+
+    async function downloadFolder(button) {
+      const section = button.closest('.parent-section');
+      const content = section.querySelector('.parent-content');
+      const downloadLinks = content.querySelectorAll('a.download-btn');
+      if (downloadLinks.length === 0) return;
+
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = '⏳ Zipping...';
+
+      const zip = new JSZip();
+      const folderName = button.getAttribute('data-folder') || 'presentations';
+
+      try {
+        for (const link of downloadLinks) {
+          const url = link.href;
+          const fileName = link.closest('.file-card').querySelector('.file-name').textContent;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch');
+            const blob = await response.blob();
+            zip.file(fileName, blob);
+          } catch (err) {
+            console.warn('Could not add file:', fileName, err);
+          }
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const blobUrl = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = folderName + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+        button.textContent = '✅ Done';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.disabled = false;
+        }, 1500);
+      } catch (err) {
+        console.error('Zip creation failed:', err);
+        button.textContent = '❌ Error';
+        button.disabled = false;
+        setTimeout(() => { button.textContent = originalText; }, 2000);
+      }
+    }
+
+    function filterFiles() {
+      const query = document.getElementById("searchInput").value.toLowerCase().trim();
+      document.querySelectorAll(".file-card").forEach(card => {
+        const name = card.getAttribute("data-filename") || "";
+        card.style.display = (query === "" || name.includes(query)) ? "" : "none";
+      });
+      document.querySelectorAll(".parent-section").forEach(section => {
+        const visible = section.querySelectorAll(".file-card:not([style*='display: none'])");
+        section.style.display = visible.length === 0 ? "none" : "";
+      });
+    }
+    function clearSearch() {
+      document.getElementById("searchInput").value = "";
+      filterFiles();
+    }
+  </script>
 </head>
 <body>
-  <h1>Download All Presentations</h1>
 
+  <div class="header">
+    <h1>📂 PPT Channel Files</h1>
+    <p>All presentations · .ppt .pptx .ppsx · Auto‑updated</p>
+  </div>
 
+  <div class="container">
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="Search by file name...">
+      <button class="clear-btn" id="clearSearch">✕ Clear</button>
+    </div>
 
+{%- assign raw_url_base = site.github.repository_url | replace: 'github.com', 'raw.githubusercontent.com' | append: '/main' -%}
+{%- assign all_ppts = '' | split: '' -%}
+{%- for file in site.static_files -%}
+  {%- assign ext = file.extname | downcase -%}
+  {%- if ext == '.ppt' or ext == '.pptx' or ext == '.ppsx' -%}
+    {%- assign all_ppts = all_ppts | push: file -%}
+  {%- endif -%}
+{%- endfor -%}
 
-  <ul>
+{%- if all_ppts.size == 0 -%}
+  <p class="empty-message">No PowerPoint files found yet. Upload some and they’ll appear here.</p>
+{%- else -%}
 
+  {%- assign parents = '' | split: '' -%}
+  {%- for file in all_ppts -%}
+    {%- assign parts = file.path | split: '/' -%}
+    {%- if parts.size >= 3 -%}{%- assign parent = parts[1] -%}
+    {%- elsif parts.size == 2 -%}{%- assign parent = parts[1] -%}
+    {%- else -%}{%- assign parent = 'root' -%}{%- endif -%}
+    {%- assign parents = parents | push: parent -%}
+  {%- endfor -%}
+  {%- assign unique_parents = parents | uniq | sort -%}
 
-  {% for file in site.static_files %}
-    {% if file.extname == '.pptx' %}
-      {% assign raw_url = site.github.repository_url | replace: 'github.com', 'raw.githubusercontent.com' | append: '/main/' | append: file.path %}
-      <li><a href="{{ raw_url }}" download>{{ file.name }}</a> — <small>{{ file.path }}</small></li>
+  {%- for parent in unique_parents -%}
+    {%- assign parent_display = parent -%}
+    {%- if parent == 'root' -%}{%- assign parent_display = 'Root (files not in any folder)' -%}{%- endif -%}
 
+    <section class="parent-section">
+      <div class="parent-header">
+        <h2><span class="folder-icon">📁</span> {{ parent_display }}</h2>
+        <button class="download-all-btn" data-folder="{{ parent_display | escape }}" onclick="downloadFolder(this)">📥 Download All</button>
+        <span class="toggle-icon">▼</span>
+      </div>
 
+      <div class="parent-content">
+        {%- assign subfolders = '' | split: '' -%}
+        {%- for file in all_ppts -%}
+          {%- assign parts = file.path | split: '/' -%}
+          {%- if parts.size >= 4 and parts[1] == parent -%}
+            {%- assign sub = parts[2] -%}
+            {%- assign subfolders = subfolders | push: sub -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- assign unique_subs = subfolders | uniq | sort -%}
 
+        {%- if unique_subs.size == 0 -%}
+          <div class="file-grid">
+          {%- for file in all_ppts -%}
+            {%- assign parts = file.path | split: '/' -%}
+            {%- if parts.size >= 3 -%}{%- assign file_parent = parts[1] -%}
+            {%- elsif parts.size == 2 -%}{%- assign file_parent = parts[1] -%}
+            {%- else -%}{%- assign file_parent = 'root' -%}{%- endif -%}
+            {%- if file_parent == parent -%}
+              {%- assign _ext = file.extname | downcase -%}
+              {%- assign _type_class = '' -%}
+              {%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
+              {%- assign _path_parts = file.path | split: '/' -%}
+              {%- capture _encoded -%}
+                {%- for part in _path_parts -%}
+                  {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
+                {%- endfor -%}
+              {%- endcapture -%}
+              {%- assign _download_url = raw_url_base | append: _encoded -%}
+              <div class="file-card" data-filename="{{ file.name | downcase }}">
+                <div class="file-name">{{ file.name }}</div>
+                <div class="file-meta">
+                  <span class="file-path">{{ file.path | replace_first: '/', '' }}</span>
+                  <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
+                </div>
+                <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+          </div>
+        {%- else -%}
+          {%- for sub in unique_subs -%}
+            <div class="subfolder">
+              <div class="subfolder-header">
+                <span class="sub-folder-icon">📄</span> {{ sub }}
+              </div>
+              <div class="file-grid">
+              {%- for file in all_ppts -%}
+                {%- assign parts = file.path | split: '/' -%}
+                {%- if parts.size >= 4 and parts[1] == parent and parts[2] == sub -%}
+                  {%- assign _ext = file.extname | downcase -%}
+                  {%- assign _type_class = '' -%}
+                  {%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
+                  {%- assign _path_parts = file.path | split: '/' -%}
+                  {%- capture _encoded -%}
+                    {%- for part in _path_parts -%}
+                      {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
+                    {%- endfor -%}
+                  {%- endcapture -%}
+                  {%- assign _download_url = raw_url_base | append: _encoded -%}
+                  <div class="file-card" data-filename="{{ file.name | downcase }}">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-meta">
+                      <span class="file-path">{{ file.path | replace_first: '/', '' }}</span>
+                      <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
+                    </div>
+                    <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
+                  </div>
+                {%- endif -%}
+              {%- endfor -%}
+              </div>
+            </div>
+          {%- endfor -%}
 
-    {% endif %}
-  {% endfor %}
-  </ul>
+          {%- assign has_direct = false -%}
+          {%- for file in all_ppts -%}
+            {%- assign parts = file.path | split: '/' -%}
+            {%- if parts.size == 3 and parts[1] == parent -%}
+              {%- assign has_direct = true -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if has_direct -%}
+            <div class="subfolder">
+              <div class="subfolder-header">📁 (files in {{ parent_display }})</div>
+              <div class="file-grid">
+              {%- for file in all_ppts -%}
+                {%- assign parts = file.path | split: '/' -%}
+                {%- if parts.size == 3 and parts[1] == parent -%}
+                  {%- assign _ext = file.extname | downcase -%}
+                  {%- assign _type_class = '' -%}
+                  {%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
+                  {%- assign _path_parts = file.path | split: '/' -%}
+                  {%- capture _encoded -%}
+                    {%- for part in _path_parts -%}
+                      {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
+                    {%- endfor -%}
+                  {%- endcapture -%}
+                  {%- assign _download_url = raw_url_base | append: _encoded -%}
+                  <div class="file-card" data-filename="{{ file.name | downcase }}">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-meta">
+                      <span class="file-path">{{ file.path | replace_first: '/', '' }}</span>
+                      <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
+                    </div>
+                    <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
+                  </div>
+                {%- endif -%}
+              {%- endfor -%}
+              </div>
+            </div>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </section>
+  {%- endfor -%}
 
-  <p><em>Click any file to download it. The list updates automatically when new files are added.</em></p>
+{%- endif -%}
+
+    <footer>
+      <p>Adding or removing files from this repository automatically updates this page.</p>
+    </footer>
+  </div>
 </body>
 </html>
-

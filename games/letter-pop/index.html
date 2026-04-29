@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Letter Pop - Learn Arabic Letters</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Cairo', sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 600px;
+      max-height: 900px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: rgba(0,0,0,0.3);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+      flex-shrink: 0;
+    }
+    .stars-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-width: 280px;
+    }
+    .star-slot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      transition: 0.3s;
+    }
+    .star-slot.earned {
+      background: #ffd700;
+      color: #000;
+      box-shadow: 0 0 8px #ffd700;
+    }
+    .score, .lives {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    #play-area {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+    .bubble {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      background: radial-gradient(circle at 30% 30%, #fff, #ff9a9e);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1e3c72;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      transition: transform 0.1s;
+      animation: float 5s linear infinite alternate;
+      z-index: 10;
+    }
+    .bubble:active { transform: scale(1.2); }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-30px); }
+    }
+    .bubble.pop {
+      animation: pop 0.3s forwards;
+    }
+    @keyframes pop {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+    .message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2rem;
+      color: white;
+      text-shadow: 2px 2px 10px black;
+      z-index: 20;
+      background: rgba(0,0,0,0.7);
+      padding: 20px 30px;
+      border-radius: 20px;
+      text-align: center;
+    }
+    .btn {
+      background: #ffd700;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    footer {
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.8rem;
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+<div id="game">
+  <div class="header">
+    <div class="stars-grid" id="starGrid"></div>
+    <div class="score" id="scoreDisplay">⭐ 0</div>
+    <div class="lives" id="livesDisplay">❤️ 3</div>
+  </div>
+  <div id="play-area"></div>
+  <footer>Letter Pop - Learn Arabic Letters</footer>
+</div>
+
+<script>
+  // ---- Arabic letters data (alphabetical order) ----
+  const letters = [
+    { char: 'ا', name: 'alif' },
+    { char: 'ب', name: 'baa' },
+    { char: 'ت', name: 'taa' },
+    { char: 'ث', name: 'thaa' },
+    { char: 'ج', name: 'jeem' },
+    { char: 'ح', name: 'haa' },
+    { char: 'خ', name: 'khaa' },
+    { char: 'د', name: 'daal' },
+    { char: 'ذ', name: 'thaal' },
+    { char: 'ر', name: 'raa' },
+    { char: 'ز', name: 'zaay' },
+    { char: 'س', name: 'seen' },
+    { char: 'ش', name: 'sheen' },
+    { char: 'ص', name: 'saad' },
+    { char: 'ض', name: 'daad' },
+    { char: 'ط', name: 'taa' },
+    { char: 'ظ', name: 'thaa' },
+    { char: 'ع', name: 'ayn' },
+    { char: 'غ', name: 'ghayn' },
+    { char: 'ف', name: 'faa' },
+    { char: 'ق', name: 'qaaf' },
+    { char: 'ك', name: 'kaaf' },
+    { char: 'ل', name: 'laam' },
+    { char: 'م', name: 'meem' },
+    { char: 'ن', name: 'noon' },
+    { char: 'ه', name: 'haa' },
+    { char: 'و', name: 'waaw' },
+    { char: 'ي', name: 'yaa' }
+  ];
+
+  // Game state
+  let score = 0;
+  let lives = 3;
+  let earnedStars = new Set(); // indices of letters fully learned
+  let currentTarget = null;    // index of the target letter
+  let gameActive = false;
+  let bubblePositions = [];    // track active bubbles
+  let speechSynth = window.speechSynthesis;
+  let activeBubbles = [];
+
+  // DOM elements
+  const playArea = document.getElementById('play-area');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const livesDisplay = document.getElementById('livesDisplay');
+  const starGrid = document.getElementById('starGrid');
+
+  // ---- Initialize Star Grid ----
+  function buildStarGrid() {
+    starGrid.innerHTML = '';
+    letters.forEach((letter, idx) => {
+      const slot = document.createElement('div');
+      slot.className = 'star-slot';
+      slot.textContent = letter.char;
+      slot.id = `star-${idx}`;
+      starGrid.appendChild(slot);
+    });
+  }
+
+  function updateStarGrid() {
+    letters.forEach((_, idx) => {
+      const slot = document.getElementById(`star-${idx}`);
+      if (earnedStars.has(idx)) {
+        slot.classList.add('earned');
+      } else {
+        slot.classList.remove('earned');
+      }
+    });
+  }
+
+  // ---- Speech ----
+  function speakLetter(letterObj) {
+    if (speechSynth.speaking) speechSynth.cancel();
+    const utter = new SpeechSynthesisUtterance(letterObj.name);
+    utter.lang = 'ar-SA';
+    utter.rate = 0.8;
+    utter.pitch = 1.1;
+    // Use a child-like voice if available
+    const voices = speechSynth.getVoices();
+    const arabicVoice = voices.find(v => v.lang.startsWith('ar')) || voices[0];
+    if (arabicVoice) utter.voice = arabicVoice;
+    speechSynth.speak(utter);
+  }
+
+  // ---- Bubble generation ----
+  function createBubble(letterObj, index, isTarget) {
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = letterObj.char;
+    bubble.dataset.index = index;
+    const areaRect = playArea.getBoundingClientRect();
+    const size = 70;
+    const x = Math.random() * (areaRect.width - size);
+    const y = areaRect.height - size - Math.random() * 100; // start near bottom
+    bubble.style.left = x + 'px';
+    bubble.style.top = y + 'px';
+    bubble.style.backgroundColor = isTarget ? '#FFD700' : `hsl(${Math.random()*360}, 70%, 70%)`;
+    bubble.addEventListener('click', () => handleBubbleClick(bubble, index, isTarget));
+    playArea.appendChild(bubble);
+    return { el: bubble, index: index, isTarget: isTarget };
+  }
+
+  function clearBubbles() {
+    activeBubbles.forEach(b => b.el.remove());
+    activeBubbles = [];
+  }
+
+  function spawnBubbles() {
+    clearBubbles();
+    // Choose target letter among those not yet earned? No, to make it progressive, we target random letter that hasn't been earned, but allow all.
+    const unearned = letters.map((_,i)=>i).filter(i => !earnedStars.has(i));
+    if (unearned.length === 0) {
+      // All stars earned! Victory.
+      endGame(true);
+      return;
+    }
+    const targetIdx = unearned[Math.floor(Math.random() * unearned.length)];
+    currentTarget = targetIdx;
+    // Generate 3-5 bubbles randomly, one of them the target
+    const bubbleCount = Math.min(5, unearned.length + 2);
+    const indices = new Set();
+    indices.add(targetIdx);
+    while (indices.size < bubbleCount) {
+      const randomIdx = Math.floor(Math.random() * letters.length);
+      indices.add(randomIdx);
+    }
+    // Speak target
+    speakLetter(letters[targetIdx]);
+    // Create bubbles
+    indices.forEach(idx => {
+      const isTarget = idx === targetIdx;
+      const bubbleData = createBubble(letters[idx], idx, isTarget);
+      activeBubbles.push(bubbleData);
+    });
+  }
+
+  // ---- Handle click ----
+  function handleBubbleClick(bubbleEl, index, isTarget) {
+    if (!gameActive) return;
+    if (isTarget) {
+      // Correct!
+      bubbleEl.classList.add('pop');
+      score += 10;
+      scoreDisplay.textContent = `⭐ ${score}`;
+      // If this letter wasn't earned, mark it
+      if (!earnedStars.has(index)) {
+        earnedStars.add(index);
+        updateStarGrid();
+        // Check all stars earned
+        if (earnedStars.size === letters.length) {
+          endGame(true);
+          return;
+        }
+      }
+      // Remove this bubble and spawn next round
+      activeBubbles = activeBubbles.filter(b => b.el !== bubbleEl);
+      setTimeout(() => {
+        bubbleEl.remove();
+        if (gameActive && activeBubbles.length === 0) {
+          spawnBubbles();
+        }
+      }, 300);
+    } else {
+      // Wrong!
+      lives--;
+      livesDisplay.textContent = '❤️'.repeat(lives);
+      bubbleEl.style.background = '#ff4444';
+      setTimeout(() => { if (bubbleEl.parentNode) bubbleEl.style.background = ''; }, 300);
+      if (lives <= 0) {
+        endGame(false);
+      }
+    }
+  }
+
+  // ---- Game flow ----
+  function startGame() {
+    score = 0;
+    lives = 3;
+    earnedStars.clear();
+    gameActive = true;
+    scoreDisplay.textContent = '⭐ 0';
+    livesDisplay.textContent = '❤️❤️❤️';
+    updateStarGrid();
+    clearBubbles();
+    spawnBubbles();
+  }
+
+  function endGame(won) {
+    gameActive = false;
+    clearBubbles();
+    const msg = document.createElement('div');
+    msg.className = 'message';
+    if (won) {
+      msg.innerHTML = `🎉 Amazing! You collected all 28 stars!<br>Score: ${score}<br><button class="btn" onclick="startGame()">Play Again</button>`;
+    } else {
+      msg.innerHTML = `😢 Game Over<br>Score: ${score}<br><button class="btn" onclick="startGame()">Try Again</button>`;
+    }
+    playArea.appendChild(msg);
+    if (speechSynth.speaking) speechSynth.cancel();
+  }
+
+  // ---- Auto-remove message on restart ----
+  const observer = new MutationObserver(() => {
+    const msgs = document.querySelectorAll('.message');
+    msgs.forEach(m => {
+      if (!gameActive && m.parentNode) m.remove();
+    });
+  });
+  observer.observe(playArea, { childList: true });
+
+  // ---- Ensure voices loaded before speaking ----
+  window.speechSynthesis.onvoiceschanged = () => {};
+
+  // ---- Start ----
+  buildStarGrid();
+  startGame();
+
+  // ---- Handle resize (reposition bubbles) ----
+  window.addEventListener('resize', () => {
+    if (gameActive) {
+      clearBubbles();
+      spawnBubbles();
+    }
+  });
+</script>
+</body>
+</html>
