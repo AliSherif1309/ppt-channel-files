@@ -9,7 +9,7 @@ layout: default
   <title>PPT Channel Files</title>
   <style>
     :root {
-      --primary: #1a73e8;        /* blue accent */
+      --primary: #1a73e8;
       --primary-light: #e8f0fe;
       --bg: #fafbfc;
       --card-bg: #ffffff;
@@ -29,8 +29,6 @@ layout: default
       color: var(--text);
       line-height: 1.5;
     }
-
-    /* Header */
     .header {
       background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
       color: white;
@@ -48,14 +46,11 @@ layout: default
       font-size: 1rem;
       opacity: 0.9;
     }
-
     .container {
       max-width: 1100px;
       margin: 0 auto;
       padding: 0 1.5rem 3rem;
     }
-
-    /* Filter bar */
     .filter-bar {
       display: flex;
       align-items: center;
@@ -86,7 +81,6 @@ layout: default
     }
     .clear-btn:hover { text-decoration: underline; }
 
-    /* Folder sections */
     .parent-section {
       margin-bottom: 2.5rem;
     }
@@ -120,7 +114,6 @@ layout: default
       transform: rotate(-90deg);
     }
 
-    /* Subfolder */
     .subfolder {
       margin-top: 1rem;
     }
@@ -137,7 +130,6 @@ layout: default
     }
     .subfolder-header .sub-folder-icon { color: #80868b; }
 
-    /* File cards grid */
     .file-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -207,15 +199,12 @@ layout: default
     }
     .download-btn:hover { background: #1765cc; }
 
-    /* Empty message */
     .empty-message {
       text-align: center;
       color: var(--text-light);
       font-style: italic;
       margin: 3rem 0;
     }
-
-    /* Footer */
     footer {
       margin-top: 3rem;
       text-align: center;
@@ -224,31 +213,55 @@ layout: default
       border-top: 1px solid var(--border);
       padding-top: 1.5rem;
     }
-
     @media (max-width: 640px) {
       .header h1 { font-size: 1.8rem; }
       .file-grid { grid-template-columns: 1fr; }
     }
   </style>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".parent-header").forEach(header => {
+        header.addEventListener("click", () => {
+          header.parentElement.classList.toggle("collapsed");
+        });
+      });
+      document.getElementById("searchInput").addEventListener("input", filterFiles);
+      document.getElementById("clearSearch").addEventListener("click", clearSearch);
+    });
+
+    function filterFiles() {
+      const query = document.getElementById("searchInput").value.toLowerCase().trim();
+      const cards = document.querySelectorAll(".file-card");
+      const sections = document.querySelectorAll(".parent-section");
+      cards.forEach(card => {
+        const name = card.getAttribute("data-filename") || "";
+        card.style.display = (query === "" || name.includes(query)) ? "" : "none";
+      });
+      sections.forEach(section => {
+        const visible = section.querySelectorAll(".file-card:not([style*='display: none'])");
+        section.style.display = visible.length === 0 ? "none" : "";
+      });
+    }
+    function clearSearch() {
+      document.getElementById("searchInput").value = "";
+      filterFiles();
+    }
+  </script>
 </head>
 <body>
 
   <div class="header">
     <h1>📂 PPT Channel Files</h1>
-    <p>All presentations • .ppt .pptx .ppsx • Auto‑updated</p>
+    <p>All presentations · .ppt .pptx .ppsx · Auto‑updated</p>
   </div>
 
   <div class="container">
-    <!-- Optional filter: type to search file names -->
     <div class="filter-bar">
-      <input type="text" id="searchInput" placeholder="Search by file name..." oninput="filterFiles()">
-      <button class="clear-btn" onclick="clearSearch()">✕ Clear</button>
+      <input type="text" id="searchInput" placeholder="Search by file name...">
+      <button class="clear-btn" id="clearSearch">✕ Clear</button>
     </div>
 
-{%- comment -%} Base raw URL {%- endcomment -%}
 {%- assign raw_url_base = site.github.repository_url | replace: 'github.com', 'raw.githubusercontent.com' | append: '/main' -%}
-
-{%- comment -%} Collect all PowerPoint files {%- endcomment -%}
 {%- assign all_ppts = '' | split: '' -%}
 {%- for file in site.static_files -%}
   {%- assign ext = file.extname | downcase -%}
@@ -258,23 +271,16 @@ layout: default
 {%- endfor -%}
 
 {%- if all_ppts.size == 0 -%}
-  <p class="empty-message">No PowerPoint files found yet. Upload some and they’ll appear here automatically.</p>
+  <p class="empty-message">No PowerPoint files found yet. Upload some and they’ll appear here.</p>
 {%- else -%}
 
-  {%- comment -%} Build parent -> subfolder structure {%- endcomment -%}
   {%- assign parents = '' | split: '' -%}
   {%- for file in all_ppts -%}
     {%- assign parts = file.path | split: '/' -%}
-    {%- if parts.size >= 3 -%}
-      {%- assign parent = parts[1] -%}
-      {%- assign parents = parents | push: parent -%}
-    {%- elsif parts.size == 2 -%}
-      {%- assign parent = parts[1] -%}
-      {%- assign parents = parents | push: parent -%}
-    {%- else -%}
-      {%- assign parent = 'root' -%}
-      {%- assign parents = parents | push: parent -%}
-    {%- endif -%}
+    {%- if parts.size >= 3 -%}{%- assign parent = parts[1] -%}
+    {%- elsif parts.size == 2 -%}{%- assign parent = parts[1] -%}
+    {%- else -%}{%- assign parent = 'root' -%}{%- endif -%}
+    {%- assign parents = parents | push: parent -%}
   {%- endfor -%}
   {%- assign unique_parents = parents | uniq | sort -%}
 
@@ -283,13 +289,12 @@ layout: default
     {%- if parent == 'root' -%}{%- assign parent_display = 'Root (files not in any folder)' -%}{%- endif -%}
 
     <section class="parent-section">
-      <div class="parent-header" onclick="this.closest('.parent-section').classList.toggle('collapsed')">
+      <div class="parent-header">
         <h2><span class="folder-icon">📁</span> {{ parent_display }}</h2>
         <span class="toggle-icon">▼</span>
       </div>
 
       <div class="parent-content">
-        {%- comment -%} Find subfolders inside this parent {%- endcomment -%}
         {%- assign subfolders = '' | split: '' -%}
         {%- for file in all_ppts -%}
           {%- assign parts = file.path | split: '/' -%}
@@ -301,16 +306,31 @@ layout: default
         {%- assign unique_subs = subfolders | uniq | sort -%}
 
         {%- if unique_subs.size == 0 -%}
-          {%- comment -%} No subfolders: just list files directly in this parent {%- endcomment -%}
           <div class="file-grid">
           {%- for file in all_ppts -%}
             {%- assign parts = file.path | split: '/' -%}
-            {%- assign file_parent = '' -%}
             {%- if parts.size >= 3 -%}{%- assign file_parent = parts[1] -%}
             {%- elsif parts.size == 2 -%}{%- assign file_parent = parts[1] -%}
             {%- else -%}{%- assign file_parent = 'root' -%}{%- endif -%}
             {%- if file_parent == parent -%}
-              {%- include file_card.html file=file raw_url_base=raw_url_base -%}
+              {%- assign _ext = file.extname | downcase -%}
+              {%- assign _type_class = '' -%}
+              {%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
+              {%- assign _path_parts = file.path | split: '/' -%}
+              {%- capture _encoded -%}
+                {%- for part in _path_parts -%}
+                  {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
+                {%- endfor -%}
+              {%- endcapture -%}
+              {%- assign _download_url = raw_url_base | append: _encoded -%}
+              <div class="file-card" data-filename="{{ file.name | downcase }}">
+                <div class="file-name">{{ file.name }}</div>
+                <div class="file-meta">
+                  <span class="file-path">{{ file.path | replace_first: '/', '' }}</span>
+                  <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
+                </div>
+                <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
+              </div>
             {%- endif -%}
           {%- endfor -%}
           </div>
@@ -324,29 +344,62 @@ layout: default
               {%- for file in all_ppts -%}
                 {%- assign parts = file.path | split: '/' -%}
                 {%- if parts.size >= 4 and parts[1] == parent and parts[2] == sub -%}
-                  {%- include file_card.html file=file raw_url_base=raw_url_base -%}
+                  {%- assign _ext = file.extname | downcase -%}
+                  {%- assign _type_class = '' -%}
+                  {%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
+                  {%- assign _path_parts = file.path | split: '/' -%}
+                  {%- capture _encoded -%}
+                    {%- for part in _path_parts -%}
+                      {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
+                    {%- endfor -%}
+                  {%- endcapture -%}
+                  {%- assign _download_url = raw_url_base | append: _encoded -%}
+                  <div class="file-card" data-filename="{{ file.name | downcase }}">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-meta">
+                      <span class="file-path">{{ file.path | replace_first: '/', '' }}</span>
+                      <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
+                    </div>
+                    <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
+                  </div>
                 {%- endif -%}
               {%- endfor -%}
               </div>
             </div>
           {%- endfor -%}
 
-          {%- comment -%} Also list files that are directly inside parent (depth 2, not in any subfolder) {%- endcomment -%}
-          {%- assign direct_files_exist = false -%}
+          {%- assign has_direct = false -%}
           {%- for file in all_ppts -%}
             {%- assign parts = file.path | split: '/' -%}
             {%- if parts.size == 3 and parts[1] == parent -%}
-              {%- assign direct_files_exist = true -%}
+              {%- assign has_direct = true -%}
             {%- endif -%}
           {%- endfor -%}
-          {%- if direct_files_exist -%}
+          {%- if has_direct -%}
             <div class="subfolder">
               <div class="subfolder-header">📁 (files in {{ parent_display }})</div>
               <div class="file-grid">
               {%- for file in all_ppts -%}
                 {%- assign parts = file.path | split: '/' -%}
                 {%- if parts.size == 3 and parts[1] == parent -%}
-                  {%- include file_card.html file=file raw_url_base=raw_url_base -%}
+                  {%- assign _ext = file.extname | downcase -%}
+                  {%- assign _type_class = '' -%}
+                  {%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
+                  {%- assign _path_parts = file.path | split: '/' -%}
+                  {%- capture _encoded -%}
+                    {%- for part in _path_parts -%}
+                      {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
+                    {%- endfor -%}
+                  {%- endcapture -%}
+                  {%- assign _download_url = raw_url_base | append: _encoded -%}
+                  <div class="file-card" data-filename="{{ file.name | downcase }}">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-meta">
+                      <span class="file-path">{{ file.path | replace_first: '/', '' }}</span>
+                      <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
+                    </div>
+                    <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
+                  </div>
                 {%- endif -%}
               {%- endfor -%}
               </div>
@@ -360,104 +413,8 @@ layout: default
 {%- endif -%}
 
     <footer>
-      <p>Automatically generated by GitHub Pages. Add or remove files → push → this page updates.</p>
+      <p>Adding or removing files from this repository automatically updates this page.</p>
     </footer>
   </div>
-
-  <script>
-    function filterFiles() {
-      const query = document.getElementById('searchInput').value.toLowerCase().trim();
-      const cards = document.querySelectorAll('.file-card');
-      const sections = document.querySelectorAll('.parent-section');
-      // For simplicity, hide cards that don't match; if a section has no visible cards, hide the whole section.
-      let anyVisible = false;
-
-      cards.forEach(card => {
-
-        const name = card.getAttribute('data-filename') || '';
-
-        const match = query === '' || name.includes(query);
-        card.style.display = match ? '' : 'none';
-        if (match) anyVisible = true;
-
-      });
-      // Hide parent sections that have no visible cards
-      sections.forEach(section => {
-
-        const visibleCards = section.querySelectorAll('.file-card[style*="display:"]');
-
-
-
-        let allHidden = true;
-
-        section.querySelectorAll('.file-card').forEach(c => {
-
-
-
-          if (c.style.display !== 'none') allHidden = false;
-
-        });
-        section.style.display = allHidden ? 'none' : '';
-
-      });
-      if (!anyVisible && query !== '') {
-
-        // could show "no results" message, but we'll keep simple
-      }
-    }
-    function clearSearch() {
-
-      document.getElementById('searchInput').value = '';
-
-
-      filterFiles();
-
-    }
-  </script>
 </body>
 </html>
-
-
-
-{%- comment -%} Include for file card (Liquid) {%- endcomment -%}
-{%- assign _file = include.file -%}
-{%- assign _raw = include.raw_url_base -%}
-{%- assign _ext = _file.extname | downcase -%}
-{%- assign _path_parts = _file.path | split: '/' -%}
-{%- capture _encoded -%}
-  {%- for part in _path_parts -%}
-    {%- if part != '' -%}/{{ part | uri_escape }}{%- endif -%}
-  {%- endfor -%}
-{%- endcapture -%}
-{%- assign _download_url = _raw | append: _encoded -%}
-{%- assign _type_class = '' -%}
-{%- if _ext == '.ppt' %}{% assign _type_class = 'type-ppt' %}{% elsif _ext == '.pptx' %}{% assign _type_class = 'type-pptx' %}{% elsif _ext == '.ppsx' %}{% assign _type_class = 'type-ppsx' %}{% endif -%}
-<div class="file-card" data-filename="{{ _file.name | downcase }}">
-
-
-  <div class="file-name">{{ _file.name }}</div>
-  <div class="file-meta">
-    <span class="file-path">{{ _file.path | replace_first: '/', '' }}</span>
-    <span class="file-type {{ _type_class }}">{{ _ext | remove_first: '.' | upcase }}</span>
-  </div>
-  <a href="{{ _download_url }}" class="download-btn" download>⬇ Download</a>
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
