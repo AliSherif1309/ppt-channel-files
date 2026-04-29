@@ -23,9 +23,14 @@ layout: default
 
 
   {% for file in site.static_files %}
-    {% if file.extname == '.pptx' %}
+    {% assign ext = file.extname | downcase %}
+    {% if ext == '.ppt' or ext == '.pptx' or ext == '.ppsx' %}
       {% assign raw_url = site.github.repository_url | replace: 'github.com', 'raw.githubusercontent.com' | append: '/main/' | append: file.path %}
       <li><a href="{{ raw_url }}" download>{{ file.name }}</a> — <small>{{ file.path }}</small></li>
+
+
+
+
 
 
 
@@ -34,7 +39,8 @@ layout: default
   {% endfor %}
   </ul>
 
-  <p><em>Click any file to download it. The list updates automatically when new files are added.</em></p>
+  <p><em>Click any file to download. Supported formats: .ppt, .pptx, .ppsx. The list updates automatically.</em></p>
 </body>
 </html>
+
 
