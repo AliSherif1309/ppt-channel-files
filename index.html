@@ -100,18 +100,40 @@ layout: default
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      margin-right: auto;
     }
     .parent-header .folder-icon { font-size: 1.5rem; }
     .parent-header .toggle-icon {
-      margin-left: auto;
       font-size: 1.2rem;
       transition: transform 0.3s;
+      margin-left: 0.5rem;
     }
     .parent-section.collapsed .parent-content {
       display: none;
     }
     .parent-section.collapsed .toggle-icon {
       transform: rotate(-90deg);
+    }
+
+    .download-all-btn {
+      background: #e8f0fe;
+      color: var(--primary);
+      border: 1px solid var(--primary-light);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+    .download-all-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+    .download-all-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
     }
 
     .subfolder {
@@ -216,12 +238,16 @@ layout: default
     @media (max-width: 640px) {
       .header h1 { font-size: 1.8rem; }
       .file-grid { grid-template-columns: 1fr; }
+      .parent-header { flex-wrap: wrap; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".parent-header").forEach(header => {
-        header.addEventListener("click", () => {
+        header.addEventListener("click", (e) => {
+          // Prevent toggle when clicking the button itself
+          if (e.target.closest('.download-all-btn')) return;
           header.parentElement.classList.toggle("collapsed");
         });
       });
@@ -229,15 +255,61 @@ layout: default
       document.getElementById("clearSearch").addEventListener("click", clearSearch);
     });
 
+    async function downloadFolder(button) {
+      const section = button.closest('.parent-section');
+      const content = section.querySelector('.parent-content');
+      const downloadLinks = content.querySelectorAll('a.download-btn');
+      if (downloadLinks.length === 0) return;
+
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = '⏳ Zipping...';
+
+      const zip = new JSZip();
+      const folderName = button.getAttribute('data-folder') || 'presentations';
+
+      try {
+        for (const link of downloadLinks) {
+          const url = link.href;
+          const fileName = link.closest('.file-card').querySelector('.file-name').textContent;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch');
+            const blob = await response.blob();
+            zip.file(fileName, blob);
+          } catch (err) {
+            console.warn('Could not add file:', fileName, err);
+          }
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const blobUrl = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = folderName + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+        button.textContent = '✅ Done';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.disabled = false;
+        }, 1500);
+      } catch (err) {
+        console.error('Zip creation failed:', err);
+        button.textContent = '❌ Error';
+        button.disabled = false;
+        setTimeout(() => { button.textContent = originalText; }, 2000);
+      }
+    }
+
     function filterFiles() {
       const query = document.getElementById("searchInput").value.toLowerCase().trim();
-      const cards = document.querySelectorAll(".file-card");
-      const sections = document.querySelectorAll(".parent-section");
-      cards.forEach(card => {
+      document.querySelectorAll(".file-card").forEach(card => {
         const name = card.getAttribute("data-filename") || "";
         card.style.display = (query === "" || name.includes(query)) ? "" : "none";
       });
-      sections.forEach(section => {
+      document.querySelectorAll(".parent-section").forEach(section => {
         const visible = section.querySelectorAll(".file-card:not([style*='display: none'])");
         section.style.display = visible.length === 0 ? "none" : "";
       });
@@ -291,6 +363,7 @@ layout: default
     <section class="parent-section">
       <div class="parent-header">
         <h2><span class="folder-icon">📁</span> {{ parent_display }}</h2>
+        <button class="download-all-btn" data-folder="{{ parent_display | escape }}" onclick="downloadFolder(this)">📥 Download All</button>
         <span class="toggle-icon">▼</span>
       </div>
 
