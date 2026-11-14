@@ -263,7 +263,7 @@ layout: default
   </div>
 
   <!-- Liquid generates a flat list of file cards inside each parent -->
-  {%- assign raw_url_base = site.github.repository_url | replace: 'github.com', 'raw.githubusercontent.com' | append: '/main' -%}
+  {%- assign raw_url_base = site.github.repository_url | replace: 'github.com', 'media.githubusercontent.com/media' | append: '/main' -%}
   {%- assign all_ppts = '' | split: '' -%}
   {%- for file in site.static_files -%}
     {%- assign ext = file.extname | downcase -%}
@@ -441,6 +441,7 @@ layout: default
       source.style.display = 'none';
       const treeRoot = renderTree(root);
       content.appendChild(treeRoot);
+      source.remove();
     });
 
     // Attach parent collapse handlers
@@ -476,7 +477,7 @@ layout: default
     const section = button.closest('.parent-section');
     const links = section.querySelectorAll('a.download-btn');
     if (links.length === 0) return;
-    await downloadLinksAsZip(links, button.getAttribute('data-folder') || 'folder');
+    await downloadLinksAsZip(links, button.getAttribute('data-folder') || 'folder', button);
   }
 
   // Download all files inside a specific tree folder
@@ -484,31 +485,67 @@ layout: default
     const links = folderDiv.querySelectorAll('.file-grid a.download-btn');
     if (links.length === 0) return;
     const folderName = folderDiv.querySelector('.tree-folder-header .folder-name')?.textContent?.trim() || 'subfolder';
-    await downloadLinksAsZip(links, folderName);
+    await downloadLinksAsZip(links, folderName, folderDiv.querySelector('.folder-dl-btn'));
   }
 
-  async function downloadLinksAsZip(links, folderName) {
-    const zip = new JSZip();
+  async function downloadLinksAsZip(links, folderName, button) {
+    if (button?.disabled) return;
+    const originalLabel = button?.textContent;
+    if (button) button.disabled = true;
+    const failures = [];
     let count = 0;
-    for (const link of links) {
-      const card = link.closest('.file-card');
-      const fileName = card ? card.querySelector('.file-name').textContent : 'file';
-      try {
-        const resp = await fetch(link.href);
-        if (!resp.ok) throw new Error('Fetch failed');
-        const blob = await resp.blob();
-        zip.file(fileName, blob);
-        count++;
-      } catch(e) { console.warn(e); }
+    let totalBytes = 0;
+    const maxBytes = 200 * 1024 * 1024;
+    try {
+      if (typeof JSZip === 'undefined') throw new Error('ZIP support could not load. Check your connection and try again.');
+      const zip = new JSZip();
+      const seen = new Set();
+      for (const link of links) {
+        const card = link.closest('.file-card');
+        const fileName = (card?.getAttribute('data-relpath') || card?.querySelector('.file-name').textContent || 'file')
+          .replace(/^\/+/, '');
+        if (seen.has(fileName)) continue;
+        seen.add(fileName);
+        if (button) button.textContent = `Downloading ${seen.size}/${links.length}…`;
+        try {
+          if (fileName.split('/').some(part => part === '..' || part === '.')) throw new Error('Invalid file path');
+          const resp = await fetch(link.href);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const size = Number(resp.headers.get('content-length')) || 0;
+          if (totalBytes + size > maxBytes) throw new Error('ZIP size limit reached; download a smaller subfolder');
+          const blob = await resp.blob();
+          if (totalBytes + blob.size > maxBytes) throw new Error('ZIP size limit reached; download a smaller subfolder');
+          // A Git LFS pointer is not a presentation; do not silently zip it.
+          if (blob.size < 1024 && (await blob.text()).startsWith('version https://git-lfs.github.com/spec/v1')) {
+            throw new Error('Presentation unavailable from Git LFS');
+          }
+          totalBytes += blob.size;
+          zip.file(fileName, blob);
+          count++;
+        } catch (error) {
+          failures.push(`${fileName}: ${error.message}`);
+        }
+      }
+      if (count) {
+        if (button) button.textContent = 'Creating ZIP…';
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = folderName.replace(/[^a-z0-9\u0600-\u06ff]/gi,'_') + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      }
+      if (failures.length) {
+        alert(`Downloaded ${count} file(s). ${failures.length} file(s) were not included:\n${failures.slice(0, 10).join('\n')}`);
+      }
+    } catch (error) {
+      alert(`Could not create ZIP: ${error.message}`);
+    } finally {
+      if (button) { button.disabled = false; button.textContent = originalLabel; }
     }
-    if (count === 0) return;
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = folderName.replace(/[^a-z0-9\u0600-\u06ff]/gi,'_') + '.zip';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
   }
 
   // Search filter
